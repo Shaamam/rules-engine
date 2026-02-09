@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'io.shaama'
-version = '1.0.0-SNAPSHOT'
+version = '1.0.0'
 description = 'Drools Rules Engine KJAR for Microservices'
 
 java {
