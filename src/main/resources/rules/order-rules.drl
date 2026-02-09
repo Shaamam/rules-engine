@@ -1,0 +1,134 @@
+package io.shaama.rulesengine.rules.order
+
+import io.shaama.rulesengine.model.Order
+import java.math.BigDecimal
+
+global org.slf4j.Logger logger
+
+// Rule 1: Free Shipping for High Value Orders
+rule "Free Shipping - Orders above 1000"
+    salience 100
+    when
+        $order: Order(orderAmount.compareTo(new BigDecimal("1000")) >= 0)
+    then
+        $order.setFreeShippingEligible(true);
+        $order.setShippingCharge(BigDecimal.ZERO);
+        logger.info("Free shipping applied for order {} with amount {}", $order.getOrderId(), $order.getOrderAmount());
+end
+
+// Rule 2: Local Delivery Shipping
+rule "Local Delivery Shipping Charge"
+    salience 90
+    when
+        $order: Order(deliveryZone == "LOCAL", orderAmount.compareTo(new BigDecimal("1000")) < 0)
+    then
+        $order.setShippingCharge(new BigDecimal("50"));
+        logger.info("Local shipping charge of 50 applied for order {}", $order.getOrderId());
+end
+
+// Rule 3: Regional Delivery Shipping
+rule "Regional Delivery Shipping Charge"
+    salience 90
+    when
+        $order: Order(deliveryZone == "REGIONAL", orderAmount.compareTo(new BigDecimal("1000")) < 0)
+    then
+        $order.setShippingCharge(new BigDecimal("100"));
+        logger.info("Regional shipping charge of 100 applied for order {}", $order.getOrderId());
+end
+
+// Rule 4: National Delivery Shipping
+rule "National Delivery Shipping Charge"
+    salience 90
+    when
+        $order: Order(deliveryZone == "NATIONAL", orderAmount.compareTo(new BigDecimal("1000")) < 0)
+    then
+        $order.setShippingCharge(new BigDecimal("200"));
+        logger.info("National shipping charge of 200 applied for order {}", $order.getOrderId());
+end
+
+// Rule 5: International Delivery Shipping
+rule "International Delivery Shipping Charge"
+    salience 90
+    when
+        $order: Order(deliveryZone == "INTERNATIONAL", orderAmount.compareTo(new BigDecimal("1000")) < 0)
+    then
+        $order.setShippingCharge(new BigDecimal("500"));
+        logger.info("International shipping charge of 500 applied for order {}", $order.getOrderId());
+end
+
+// Rule 6: Peak Hour Processing Fee
+rule "Peak Hour Processing Fee"
+    salience 85
+    when
+        $order: Order(isPeakHour() == true)
+    then
+        $order.setProcessingFee(new BigDecimal("25"));
+        logger.info("Peak hour processing fee of 25 applied for order {}", $order.getOrderId());
+end
+
+// Rule 7: High Value Order - Requires Approval
+rule "High Value Order Requires Approval"
+    salience 95
+    when
+        $order: Order(orderAmount.compareTo(new BigDecimal("10000")) >= 0)
+    then
+        $order.setRequiresApproval(true);
+        $order.setOrderPriority("HIGH");
+        logger.info("Order {} requires approval due to high value: {}", $order.getOrderId(), $order.getOrderAmount());
+end
+
+// Rule 8: Priority for Electronics
+rule "Electronics Orders - High Priority"
+    salience 80
+    when
+        $order: Order(productType == "ELECTRONICS", orderAmount.compareTo(new BigDecimal("5000")) >= 0, orderPriority == null)
+    then
+        $order.setOrderPriority("HIGH");
+        logger.info("High priority set for electronics order {}", $order.getOrderId());
+end
+
+// Rule 9: Bulk Order Processing
+rule "Bulk Order - Medium Priority"
+    salience 75
+    when
+        $order: Order(itemCount >= 10, orderPriority == null)
+    then
+        $order.setOrderPriority("MEDIUM");
+        logger.info("Medium priority set for bulk order {} with {} items", $order.getOrderId(), $order.getItemCount());
+end
+
+// Rule 10: Default Priority
+rule "Default Order Priority"
+    salience 1
+    when
+        $order: Order(orderPriority == null, 
+                      orderAmount.compareTo(new BigDecimal("10000")) < 0, 
+                      !(productType == "ELECTRONICS" && orderAmount.compareTo(new BigDecimal("5000")) >= 0),
+                      itemCount < 10)
+    then
+        $order.setOrderPriority("LOW");
+        logger.info("Default low priority set for order {}", $order.getOrderId());
+end
+
+// Rule 11: Calculate Total Amount
+rule "Calculate Total Order Amount"
+    salience 1
+    when
+        $order: Order(totalAmount == null)
+    then
+        BigDecimal shipping = $order.getShippingCharge() != null ? $order.getShippingCharge() : BigDecimal.ZERO;
+        BigDecimal processing = $order.getProcessingFee() != null ? $order.getProcessingFee() : BigDecimal.ZERO;
+        BigDecimal total = $order.getOrderAmount().add(shipping).add(processing);
+        $order.setTotalAmount(total);
+        logger.info("Total amount calculated for order {}: {}", $order.getOrderId(), total);
+end
+
+// Rule 12: Validate Minimum Order
+rule "Validate Minimum Order Amount"
+    salience 110
+    when
+        $order: Order(orderAmount.compareTo(new BigDecimal("50")) < 0)
+    then
+        $order.setValidationMessage("Order amount must be at least 50");
+        logger.warn("Order {} validation failed: amount {} below minimum", $order.getOrderId(), $order.getOrderAmount());
+end

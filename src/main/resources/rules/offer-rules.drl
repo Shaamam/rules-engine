@@ -1,0 +1,105 @@
+package io.shaama.rulesengine.rules.offer
+
+import io.shaama.rulesengine.model.Offer
+import java.math.BigDecimal
+import java.time.LocalDate
+
+global org.slf4j.Logger logger
+
+// Rule 1: First Time Customer Offer
+rule "First Time Customer - 15% Discount"
+    salience 100
+    when
+        $offer: Offer(isFirstTimeCustomer() == true, orderAmount.compareTo(new BigDecimal("500")) >= 0, isOfferApplicable() == false)
+    then
+        $offer.setDiscountPercentage(new BigDecimal("15"));
+        $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.15")));
+        $offer.setAppliedOfferType("FIRST_TIME_CUSTOMER");
+        $offer.setOfferApplicable(true);
+        logger.info("Applied First Time Customer offer: 15% discount on order {}", $offer.getOfferId());
+end
+
+// Rule 2: Premium Customer Offer
+rule "Premium Customer - 20% Discount"
+    salience 90
+    when
+        $offer: Offer(customerSegment == "PREMIUM", orderAmount.compareTo(new BigDecimal("1000")) >= 0, isOfferApplicable() == false)
+    then
+        $offer.setDiscountPercentage(new BigDecimal("20"));
+        $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.20")));
+        $offer.setAppliedOfferType("PREMIUM_CUSTOMER");
+        $offer.setOfferApplicable(true);
+        logger.info("Applied Premium Customer offer: 20% discount on order {}", $offer.getOfferId());
+end
+
+// Rule 3: Gold Customer Offer
+rule "Gold Customer - 15% Discount"
+    salience 80
+    when
+        $offer: Offer(customerSegment == "GOLD", orderAmount.compareTo(new BigDecimal("800")) >= 0, isOfferApplicable() == false)
+    then
+        $offer.setDiscountPercentage(new BigDecimal("15"));
+        $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.15")));
+        $offer.setAppliedOfferType("GOLD_CUSTOMER");
+        $offer.setOfferApplicable(true);
+        logger.info("Applied Gold Customer offer: 15% discount on order {}", $offer.getOfferId());
+end
+
+// Rule 4: Electronics Category Offer
+rule "Electronics Category - 10% Discount on orders above 2000"
+    salience 70
+    when
+        $offer: Offer(productCategory == "ELECTRONICS", orderAmount.compareTo(new BigDecimal("2000")) >= 0, isOfferApplicable() == false)
+    then
+        $offer.setDiscountPercentage(new BigDecimal("10"));
+        $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.10")));
+        $offer.setAppliedOfferType("ELECTRONICS_CATEGORY");
+        $offer.setOfferApplicable(true);
+        logger.info("Applied Electronics Category offer: 10% discount on order {}", $offer.getOfferId());
+end
+
+// Rule 5: Fashion Category Offer
+rule "Fashion Category - 25% Discount"
+    salience 75
+    when
+        $offer: Offer(productCategory == "FASHION", orderAmount.compareTo(new BigDecimal("1500")) >= 0, isOfferApplicable() == false)
+    then
+        $offer.setDiscountPercentage(new BigDecimal("25"));
+        $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.25")));
+        $offer.setAppliedOfferType("FASHION_CATEGORY");
+        $offer.setOfferApplicable(true);
+        logger.info("Applied Fashion Category offer: 25% discount on order {}", $offer.getOfferId());
+end
+
+// Rule 6: Expired Offer Check
+rule "Reject Expired Offers"
+    salience 110
+    when
+        $offer: Offer(offerValidUntil != null, offerValidUntil.isBefore(LocalDate.now()), rejectionReason == null)
+    then
+        $offer.setOfferApplicable(false);
+        $offer.setRejectionReason("Offer has expired");
+        logger.warn("Offer {} rejected: expired on {}", $offer.getOfferId(), $offer.getOfferValidUntil());
+end
+
+// Rule 7: Minimum Order Amount Check
+rule "Reject Below Minimum Order Amount"
+    salience 105
+    when
+        $offer: Offer(orderAmount.compareTo(new BigDecimal("200")) < 0, isOfferApplicable() == false)
+    then
+        $offer.setOfferApplicable(false);
+        $offer.setRejectionReason("Order amount below minimum threshold of 200");
+        logger.warn("Offer {} rejected: order amount {} is below minimum", $offer.getOfferId(), $offer.getOrderAmount());
+end
+
+// Rule 8: Default No Offer
+// COMMENTED OUT: This rule conflicts with other rejection rules in stateless mode
+// rule "No Applicable Offer"
+//     salience 1
+//     when
+//         $offer: Offer(isOfferApplicable() == false, rejectionReason == null)
+//     then
+//         $offer.setRejectionReason("No applicable offers found");
+//         logger.info("No applicable offers found for order {}", $offer.getOfferId());
+// end

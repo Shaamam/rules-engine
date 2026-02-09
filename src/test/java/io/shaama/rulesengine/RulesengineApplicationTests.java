@@ -1,13 +1,13 @@
 package io.shaama.rulesengine;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
 class RulesengineApplicationTests {
 
 	@Test
 	void contextLoads() {
+		// Basic test to ensure the application can be loaded
+		RulesengineApplication.main(new String[]{});
 	}
 
 }

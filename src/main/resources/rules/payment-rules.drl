@@ -1,0 +1,179 @@
+package io.shaama.rulesengine.rules.payment
+
+import io.shaama.rulesengine.model.Payment
+import java.math.BigDecimal
+
+global org.slf4j.Logger logger
+
+// Rule 1: High Value Payment Risk Assessment
+rule "High Value Payment - Manual Review Required"
+    salience 100
+    when
+        $payment: Payment(amount.compareTo(new BigDecimal("50000")) >= 0)
+    then
+        $payment.setRequiresManualReview(true);
+        $payment.setPaymentStatus("REQUIRES_VERIFICATION");
+        $payment.setRiskScore(75);
+        logger.warn("High value payment {} requires manual review: amount {}", $payment.getPaymentId(), $payment.getAmount());
+end
+
+// Rule 2: Credit Card Transaction Fee
+rule "Credit Card Transaction Fee"
+    salience 90
+    when
+        $payment: Payment(paymentMethod == "CREDIT_CARD", paymentStatus != "REJECTED")
+    then
+        BigDecimal fee = $payment.getAmount().multiply(new BigDecimal("0.025")); // 2.5% fee
+        $payment.setTransactionFee(fee);
+        logger.info("Credit card transaction fee of {} applied for payment {}", fee, $payment.getPaymentId());
+end
+
+// Rule 3: Debit Card Transaction Fee
+rule "Debit Card Transaction Fee"
+    salience 90
+    when
+        $payment: Payment(paymentMethod == "DEBIT_CARD", paymentStatus != "REJECTED")
+    then
+        BigDecimal fee = $payment.getAmount().multiply(new BigDecimal("0.015")); // 1.5% fee
+        $payment.setTransactionFee(fee);
+        logger.info("Debit card transaction fee of {} applied for payment {}", fee, $payment.getPaymentId());
+end
+
+// Rule 4: UPI Zero Fee
+rule "UPI Payment - Zero Transaction Fee"
+    salience 90
+    when
+        $payment: Payment(paymentMethod == "UPI", paymentStatus != "REJECTED")
+    then
+        $payment.setTransactionFee(BigDecimal.ZERO);
+        logger.info("Zero transaction fee for UPI payment {}", $payment.getPaymentId());
+end
+
+// Rule 5: VIP Customer Cashback
+rule "VIP Customer - 5% Cashback"
+    salience 85
+    when
+        $payment: Payment(customerType == "VIP", amount.compareTo(new BigDecimal("1000")) >= 0, paymentStatus != "REJECTED")
+    then
+        BigDecimal cashback = $payment.getAmount().multiply(new BigDecimal("0.05"));
+        $payment.setCashbackAmount(cashback);
+        $payment.setCashbackPercentage("5%");
+        logger.info("VIP cashback of {} (5%) applied for payment {}", cashback, $payment.getPaymentId());
+end
+
+// Rule 6: Regular Customer Cashback
+rule "Regular Customer - 2% Cashback on High Value"
+    salience 80
+    when
+        $payment: Payment(customerType == "REGULAR", amount.compareTo(new BigDecimal("5000")) >= 0, 
+                         transactionCount >= 5, paymentStatus != "REJECTED", cashbackAmount == null)
+    then
+        BigDecimal cashback = $payment.getAmount().multiply(new BigDecimal("0.02"));
+        $payment.setCashbackAmount(cashback);
+        $payment.setCashbackPercentage("2%");
+        logger.info("Regular customer cashback of {} (2%) applied for payment {}", cashback, $payment.getPaymentId());
+end
+
+// Rule 7: Credit Limit Check
+rule "Payment Exceeds Credit Limit - Reject"
+    salience 110
+    when
+        $payment: Payment(paymentMethod in ("CREDIT_CARD", "NET_BANKING"), 
+                         creditLimit != null, 
+                         amount.compareTo(creditLimit) > 0)
+    then
+        $payment.setPaymentApproved(false);
+        $payment.setPaymentStatus("REJECTED");
+        $payment.setRejectionReason("Payment amount exceeds credit limit");
+        $payment.setRiskScore(100);
+        logger.error("Payment {} rejected: amount {} exceeds credit limit {}", 
+                    $payment.getPaymentId(), $payment.getAmount(), $payment.getCreditLimit());
+end
+
+// Rule 8: New Customer High Amount - Verification Required
+rule "New Customer High Amount - Verify"
+    salience 95
+    when
+        $payment: Payment(customerType == "NEW", amount.compareTo(new BigDecimal("10000")) >= 0, 
+                         paymentStatus != "REJECTED")
+    then
+        $payment.setRequiresManualReview(true);
+        $payment.setPaymentStatus("REQUIRES_VERIFICATION");
+        $payment.setRiskScore(60);
+        logger.warn("New customer payment {} requires verification: amount {}", $payment.getPaymentId(), $payment.getAmount());
+end
+
+// Rule 9: COD Limit Check
+rule "COD Payment Limit"
+    salience 105
+    when
+        $payment: Payment(paymentMethod == "COD", amount.compareTo(new BigDecimal("5000")) > 0)
+    then
+        $payment.setPaymentApproved(false);
+        $payment.setPaymentStatus("REJECTED");
+        $payment.setRejectionReason("COD not available for orders above 5000");
+        logger.warn("COD payment {} rejected: amount {} exceeds COD limit", $payment.getPaymentId(), $payment.getAmount());
+end
+
+// Rule 10: Low Risk Payment - Auto Approve
+rule "Low Risk Payment - Auto Approve"
+    salience 70
+    when
+        $payment: Payment(amount.compareTo(new BigDecimal("10000")) < 0, 
+                         customerType in ("REGULAR", "VIP"),
+                         // Exclude COD over limit
+                         !(paymentMethod == "COD" && amount.compareTo(new BigDecimal("5000")) > 0))
+    then
+        $payment.setPaymentApproved(true);
+        $payment.setPaymentStatus("APPROVED");
+        $payment.setRiskScore(10);
+        logger.info("Payment {} auto-approved (low risk): amount {}", $payment.getPaymentId(), $payment.getAmount());
+end
+
+// Rule 11: Medium Risk Payment
+rule "Medium Risk Payment - Approve with Monitoring"
+    salience 65
+    when
+        $payment: Payment(amount.compareTo(new BigDecimal("25000")) < 0, 
+                         customerType == "NEW", 
+                         transactionCount >= 1,
+                         paymentStatus != "REJECTED", 
+                         paymentStatus != "REQUIRES_VERIFICATION")
+    then
+        $payment.setPaymentApproved(true);
+        $payment.setPaymentStatus("APPROVED");
+        $payment.setRiskScore(35);
+        logger.info("Payment {} approved with monitoring (medium risk): amount {}", $payment.getPaymentId(), $payment.getAmount());
+end
+
+// Rule 12: Wallet Transaction Fee
+rule "Wallet Payment - Low Transaction Fee"
+    salience 90
+    when
+        $payment: Payment(paymentMethod == "WALLET", paymentStatus != "REJECTED")
+    then
+        BigDecimal fee = $payment.getAmount().multiply(new BigDecimal("0.01")); // 1% fee
+        $payment.setTransactionFee(fee);
+        logger.info("Wallet transaction fee of {} applied for payment {}", fee, $payment.getPaymentId());
+end
+
+// Rule 13: Default Payment Status
+rule "Set Default Payment Status"
+    salience 1
+    when
+        $payment: Payment(paymentStatus == null,
+                         // Exclude high value payments that require review
+                         amount.compareTo(new BigDecimal("50000")) < 0,
+                         // Exclude credit limit exceeded (would be rejected)
+                         (creditLimit == null || amount.compareTo(creditLimit) <= 0),
+                         // Exclude COD over limit
+                         !(paymentMethod == "COD" && amount.compareTo(new BigDecimal("5000")) > 0),
+                         // Exclude low-risk auto-approve cases
+                         !(amount.compareTo(new BigDecimal("10000")) < 0 && (customerType == "REGULAR" || customerType == "VIP")),
+                         // Exclude new customer verification cases
+                         !(customerType == "NEW" && amount.compareTo(new BigDecimal("10000")) >= 0))
+    then
+        $payment.setPaymentStatus("PENDING");
+        $payment.setRiskScore(50);
+        logger.info("Default pending status set for payment {}", $payment.getPaymentId());
+end

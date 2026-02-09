@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kmodule xmlns="http://www.drools.org/xsd/kmodule" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    
+    <!-- Offer Rules KieBase -->
+    <kbase name="offerKBase" packages="io.shaama.rulesengine.rules.offer" default="false">
+        <ksession name="offerKSession" type="stateless" default="false"/>
+    </kbase>
+    
+    <!-- Order Rules KieBase -->
+    <kbase name="orderKBase" packages="io.shaama.rulesengine.rules.order" default="false">
+        <ksession name="orderKSession" type="stateless" default="false"/>
+    </kbase>
+    
+    <!-- Payment Rules KieBase -->
+    <kbase name="paymentKBase" packages="io.shaama.rulesengine.rules.payment" default="false">
+        <ksession name="paymentKSession" type="stateless" default="false"/>
+    </kbase>
+    
+    <!-- All Rules Combined KieBase -->
+    <kbase name="allRulesKBase" packages="io.shaama.rulesengine.rules" default="true">
+        <ksession name="allRulesKSession" type="stateless" default="true"/>
+    </kbase>
+    
+</kmodule>
