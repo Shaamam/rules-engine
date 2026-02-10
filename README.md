@@ -5,22 +5,6 @@ A **Drools-based Rules Engine** packaged as a Knowledge JAR (KJAR) for managing 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
 [![Java](https://img.shields.io/badge/Java-21-orange)]()
 [![Drools](https://img.shields.io/badge/Drools-8.44.0-blue)]()
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)]()
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Rules Overview](#rules-overview)
-- [Getting Started](#getting-started)
-- [Building the Project](#building-the-project)
-- [Testing](#testing)
-- [Publishing to GitHub Packages](#publishing-to-github-packages)
-- [Using in Microservices](#using-in-microservices)
-- [API Documentation](#api-documentation)
-- [Contributing](#contributing)
 
 ## 🎯 Overview
 
@@ -450,7 +434,7 @@ end
 
 ### Hot Reload in Services
 
-For hot-reloading rules in consuming services, see [OFFER_SERVICE_PROMPT.md](OFFER_SERVICE_PROMPT.md).
+For hot-reloading rules in consuming services, see https://github.com/Shaamam/offer-service-drools-poc
 
 ## 📝 Best Practices
 
