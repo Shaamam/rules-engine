@@ -16,7 +16,6 @@ rule "First Time Customer - 15% Discount"
         $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.15")));
         $offer.setAppliedOfferType("FIRST_TIME_CUSTOMER");
         $offer.setOfferApplicable(true);
-        logger.info("Applied First Time Customer offer: 15% discount on order {}", $offer.getOfferId());
 end
 
 // Rule 2: Premium Customer Offer
@@ -29,7 +28,6 @@ rule "Premium Customer - 20% Discount"
         $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.20")));
         $offer.setAppliedOfferType("PREMIUM_CUSTOMER");
         $offer.setOfferApplicable(true);
-        logger.info("Applied Premium Customer offer: 20% discount on order {}", $offer.getOfferId());
 end
 
 // Rule 3: Gold Customer Offer
@@ -42,7 +40,6 @@ rule "Gold Customer - 15% Discount"
         $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.15")));
         $offer.setAppliedOfferType("GOLD_CUSTOMER");
         $offer.setOfferApplicable(true);
-        logger.info("Applied Gold Customer offer: 15% discount on order {}", $offer.getOfferId());
 end
 
 // Rule 4: Electronics Category Offer
@@ -55,7 +52,6 @@ rule "Electronics Category - 10% Discount on orders above 2000"
         $offer.setDiscountAmount($offer.getOrderAmount().multiply(new BigDecimal("0.10")));
         $offer.setAppliedOfferType("ELECTRONICS_CATEGORY");
         $offer.setOfferApplicable(true);
-        logger.info("Applied Electronics Category offer: 10% discount on order {}", $offer.getOfferId());
 end
 
 // Rule 5: Fashion Category Offer
