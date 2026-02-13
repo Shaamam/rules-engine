@@ -7,7 +7,7 @@ import java.time.LocalDate
 global org.slf4j.Logger logger
 
 // Rule 1: First Time Customer Offer
-rule "First Time Customer - 20% Discount"
+rule "First Time Customer - 25% Discount"
     salience 100
     when
         $offer: Offer(isFirstTimeCustomer() == true, orderAmount.compareTo(new BigDecimal("500")) >= 0, isOfferApplicable() == false)
